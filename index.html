@@ -5,6 +5,20 @@
     <title>Hello World</title>
 </head>
 <body>
-    <h1>Hello World</h1>
+    <h1>Mass Data Transfer</h1>
+     <h1 id="message">Loading...</h1>
+
+    <script>
+    fetch("https://mass-data-transfer-server.onrender.com/api/message")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("message").innerText = data.message;
+        })
+        .catch(err => {
+            document.getElementById("message").innerText = "Failed to load message";
+            console.error(err);
+        });
+</script>
+
 </body>
 </html>
