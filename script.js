@@ -1,4 +1,5 @@
-const SERVER_URL = "http://localhost:5000";
+// Server URL is now managed in config.js (public/JsHelper/config.js)
+const SERVER_URL = CONFIG.serverUrl;
 
 
 
