@@ -1,24 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Hello World</title>
+  <meta charset="UTF-8" />
+  <title>Mass Data Transfer</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Mass Data Transfer</h1>
-     <h1 id="message">Loading...</h1>
+  <h2>Mass Data Transfer</h2>
 
-    <script>
-    fetch("https://mass-data-transfer-server.onrender.com/api/message")
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById("message").innerText = data.message;
-        })
-        .catch(err => {
-            document.getElementById("message").innerText = "Failed to load message";
-            console.error(err);
-        });
-</script>
+  <!-- Source Org -->
+  <div>
+    <input type="text" id="sourceDomain" placeholder="Enter Source Org Domain" />
+    <button id="connectSource">Connect Source Org</button>
+    <div id="sourceStatus" class="status">Status: Not Connected</div>
+  </div>
 
+  <!-- Target Org -->
+  <div>
+    <input type="text" id="targetDomain" placeholder="Enter Target Org Domain" />
+    <button id="connectTarget">Connect Target Org</button>
+    <div id="targetStatus" class="status">Status: Not Connected</div>
+  </div>
+
+  <!-- Backend Server Status -->
+  <div id="backendServerStatus">Connecting to Backend...</div>
+
+  <script src="script.js"></script>
 </body>
 </html>
