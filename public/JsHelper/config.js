@@ -6,12 +6,12 @@ const CONFIG = {
   // =================== Local Server Variables======================
 
   // Server URL - Change this when deploying to production
-  serverUrl: "http://localhost:5000",
+  //serverUrl: "http://localhost:5000",
 
 
   // ==================== Production Server Variables ================
   
   // Example for production:
-  // serverUrl: "https://mass-data-transfer-server.onrender.com",
+  serverUrl: "https://mass-data-transfer-server.onrender.com",
 };
 
