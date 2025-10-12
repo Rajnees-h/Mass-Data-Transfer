@@ -2,30 +2,592 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Mass Data Transfer</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mass Data Transfer | Salesforce Migration Tool</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Custom Tailwind Config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'sf-blue': '#0176d3',
+            'sf-dark-blue': '#032d60',
+            'sf-light-blue': '#e8f4fc',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    /* Custom animations and utilities */
+    .step-indicator {
+      transition: all 0.3s ease;
+    }
+    .step-indicator.active {
+      transform: scale(1.1);
+    }
+    .fade-in {
+      animation: fadeIn 0.4s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .pulse-dot {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
 </head>
-<body>
-  <h2>Mass Data Transfer</h2>
 
-  <!-- Source Org -->
-  <div>
-    <input type="text" id="sourceDomain" placeholder="Enter Source Org Domain" />
-    <button id="connectSource">Connect Source Org</button>
-    <div id="sourceStatus" class="status">Status: Not Connected</div>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  
+  <!-- Fixed Header -->
+  <header class="bg-white shadow-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="bg-sf-blue text-white p-2 rounded-lg">
+            <i data-lucide="database" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Mass Data Transfer</h1>
+            <p class="text-sm text-gray-500">Salesforce Org to Org Migration</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span id="headerBackendStatus" class="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full text-sm">
+            <span class="w-2 h-2 bg-gray-400 rounded-full pulse-dot"></span>
+            <span class="text-gray-600">Connecting...</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Progress Stepper -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+      <div class="flex items-center justify-between">
+        <div class="flex-1" id="stepperContainer">
+          <div class="flex items-center justify-between relative">
+            <!-- Step 1 -->
+            <div class="flex flex-col items-center flex-1 step-item" data-step="1">
+              <div class="w-12 h-12 rounded-full border-4 border-sf-blue bg-sf-blue text-white flex items-center justify-center font-bold text-lg step-indicator active">
+                1
+              </div>
+              <span class="mt-2 text-sm font-medium text-sf-blue">Connect Orgs</span>
+            </div>
+            <div class="flex-1 h-1 bg-gray-200 mx-2"></div>
+            
+            <!-- Step 2 -->
+            <div class="flex flex-col items-center flex-1 step-item" data-step="2">
+              <div class="w-12 h-12 rounded-full border-4 border-gray-300 bg-white text-gray-400 flex items-center justify-center font-bold text-lg step-indicator">
+                2
+              </div>
+              <span class="mt-2 text-sm font-medium text-gray-400">Select Objects</span>
+            </div>
+            <div class="flex-1 h-1 bg-gray-200 mx-2"></div>
+            
+            <!-- Step 3 -->
+            <div class="flex flex-col items-center flex-1 step-item" data-step="3">
+              <div class="w-12 h-12 rounded-full border-4 border-gray-300 bg-white text-gray-400 flex items-center justify-center font-bold text-lg step-indicator">
+                3
+              </div>
+              <span class="mt-2 text-sm font-medium text-gray-400">Match Objects</span>
+            </div>
+            <div class="flex-1 h-1 bg-gray-200 mx-2"></div>
+            
+            <!-- Step 4 -->
+            <div class="flex flex-col items-center flex-1 step-item" data-step="4">
+              <div class="w-12 h-12 rounded-full border-4 border-gray-300 bg-white text-gray-400 flex items-center justify-center font-bold text-lg step-indicator">
+                4
+              </div>
+              <span class="mt-2 text-sm font-medium text-gray-400">Field Mapping</span>
+            </div>
+            <div class="flex-1 h-1 bg-gray-200 mx-2"></div>
+            
+            <!-- Step 5 -->
+            <div class="flex flex-col items-center flex-1 step-item" data-step="5">
+              <div class="w-12 h-12 rounded-full border-4 border-gray-300 bg-white text-gray-400 flex items-center justify-center font-bold text-lg step-indicator">
+                5
+              </div>
+              <span class="mt-2 text-sm font-medium text-gray-400">Transfer Data</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step Content Container -->
+    <div id="stepContent">
+      
+      <!-- STEP 1: Connect Organizations -->
+      <div id="step1" class="step-content fade-in">
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Step 1: Connect Organizations</h2>
+            <p class="text-gray-600">Connect to both source and target Salesforce organizations</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Source Org Card -->
+            <div class="border-2 border-purple-200 rounded-lg p-6 bg-gradient-to-br from-purple-50 to-indigo-50 hover:shadow-lg transition-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                  <div class="bg-purple-500 text-white p-3 rounded-lg">
+                    <i data-lucide="cloud-upload" class="w-6 h-6"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-bold text-gray-900">Source Org</h3>
+                    <p class="text-sm text-gray-600">Data will be copied FROM here</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="space-y-4">
+                <input 
+                  type="text" 
+                  id="sourceDomain" 
+                  placeholder="https://login.salesforce.com"
+                  class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                />
+                
+                <button 
+                  id="connectSource" 
+                  class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                >
+                  <i data-lucide="log-in" class="w-5 h-5"></i>
+                  <span>Connect Source Org</span>
+                </button>
+                
+                <div id="sourceStatus" class="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                  <span class="text-sm font-medium text-red-700">Not Connected</span>
+                </div>
+                
+                <div id="sourceOrgDetails" class="hidden bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-600 font-medium">Org Name:</span>
+                    <span id="sourceOrgName" class="text-gray-900 font-mono">-</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-600 font-medium">Org ID:</span>
+                    <span id="sourceOrgId" class="text-gray-900 font-mono text-xs">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Target Org Card -->
+            <div class="border-2 border-pink-200 rounded-lg p-6 bg-gradient-to-br from-pink-50 to-rose-50 hover:shadow-lg transition-shadow">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                  <div class="bg-pink-500 text-white p-3 rounded-lg">
+                    <i data-lucide="cloud-download" class="w-6 h-6"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-bold text-gray-900">Target Org</h3>
+                    <p class="text-sm text-gray-600">Data will be copied TO here</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="space-y-4">
+                <input 
+                  type="text" 
+                  id="targetDomain" 
+                  placeholder="https://test.salesforce.com"
+                  class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
+                />
+                
+                <button 
+                  id="connectTarget" 
+                  class="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                >
+                  <i data-lucide="log-in" class="w-5 h-5"></i>
+                  <span>Connect Target Org</span>
+                </button>
+                
+                <div id="targetStatus" class="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                  <span class="text-sm font-medium text-red-700">Not Connected</span>
+                </div>
+                
+                <div id="targetOrgDetails" class="hidden bg-white border border-gray-200 rounded-lg p-4 space-y-2">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-600 font-medium">Org Name:</span>
+                    <span id="targetOrgName" class="text-gray-900 font-mono">-</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-600 font-medium">Org ID:</span>
+                    <span id="targetOrgId" class="text-gray-900 font-mono text-xs">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Next Button -->
+          <div class="mt-8 flex justify-end">
+            <button 
+              id="step1Next" 
+              disabled
+              class="bg-sf-blue hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <span>Next: Select Objects</span>
+              <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Select Objects (Hidden initially) -->
+      <div id="step2" class="step-content hidden fade-in">
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Step 2: Select Objects from Source Org</h2>
+            <p class="text-gray-600">Choose which Salesforce objects you want to transfer</p>
+          </div>
+
+          <!-- Search and Filter -->
+          <div class="mb-6 flex items-center space-x-4">
+            <div class="flex-1 relative">
+              <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+              <input 
+                type="text" 
+                id="objectSearch" 
+                placeholder="Search objects..."
+                class="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-sf-blue focus:border-transparent"
+              />
+            </div>
+            <button class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg flex items-center space-x-2">
+              <i data-lucide="filter" class="w-5 h-5"></i>
+              <span>Filter</span>
+            </button>
+          </div>
+
+          <!-- Object Statistics -->
+          <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="text-sm text-blue-600 font-medium">Total Objects</div>
+              <div id="totalObjects" class="text-3xl font-bold text-blue-900">0</div>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div class="text-sm text-green-600 font-medium">Selected</div>
+              <div id="selectedObjects" class="text-3xl font-bold text-green-900">0</div>
+            </div>
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div class="text-sm text-purple-600 font-medium">Ready to Map</div>
+              <div id="readyToMap" class="text-3xl font-bold text-purple-900">0</div>
+            </div>
+          </div>
+
+          <!-- Object List -->
+          <div class="border-2 border-gray-200 rounded-lg overflow-hidden">
+            <div class="bg-gray-50 border-b border-gray-200 p-4 flex items-center justify-between">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="selectAllObjects" class="w-5 h-5 text-sf-blue rounded focus:ring-2 focus:ring-sf-blue">
+                <span class="font-semibold text-gray-700">Select All</span>
+              </label>
+              <span class="text-sm text-gray-600">Click to select all objects</span>
+            </div>
+            
+            <div id="objectList" class="max-h-96 overflow-y-auto divide-y divide-gray-200">
+              <!-- Objects will be dynamically loaded here -->
+              <div class="p-8 text-center text-gray-500">
+                <i data-lucide="loader" class="w-12 h-12 mx-auto mb-3 animate-spin text-sf-blue"></i>
+                <p>Loading objects from source org...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="mt-8 flex justify-between">
+            <button 
+              id="step2Back"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-8 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <i data-lucide="arrow-left" class="w-5 h-5"></i>
+              <span>Back</span>
+            </button>
+            <button 
+              id="step2Next" 
+              disabled
+              class="bg-sf-blue hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <span>Next: Match Target Objects</span>
+              <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Match Target Objects (Hidden initially) -->
+      <div id="step3" class="step-content hidden fade-in">
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <div class="mb-6 flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900 mb-2">Step 3: Match Target Objects</h2>
+              <p class="text-gray-600">Map source objects to corresponding target objects</p>
+            </div>
+            <button 
+              id="autoMatchObjectsBtn" 
+              class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors shadow-md"
+              onclick="autoMatchAllObjects()"
+            >
+              <i data-lucide="zap" class="w-5 h-5"></i>
+              <span>Auto-Match by API Name</span>
+            </button>
+          </div>
+
+          <!-- Mapping Progress -->
+          <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-blue-900">Mapping Progress</span>
+              <span id="mappingProgress" class="text-sm font-bold text-blue-900">0 / 0 objects mapped</span>
+            </div>
+            <div class="w-full bg-blue-200 rounded-full h-3">
+              <div id="mappingProgressBar" class="bg-blue-600 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Object Mapping List -->
+          <div id="objectMappingList" class="space-y-4">
+            <!-- Mappings will be dynamically generated -->
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="mt-8 flex justify-between">
+            <button 
+              id="step3Back"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-8 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <i data-lucide="arrow-left" class="w-5 h-5"></i>
+              <span>Back</span>
+            </button>
+            <button 
+              id="step3Next" 
+              disabled
+              class="bg-sf-blue hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <span>Next: Map Fields</span>
+              <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4: Field Mapping (Hidden initially) -->
+      <div id="step4" class="step-content hidden fade-in">
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <div class="mb-6 flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900 mb-2">Step 4: Field Mapping</h2>
+              <p class="text-gray-600">Map fields for each object pair</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button 
+                id="autoMapAllFieldsBtn" 
+                class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg text-sm flex items-center space-x-2 shadow-lg transform hover:scale-105 transition-all"
+                onclick="autoMapAllObjects()"
+              >
+                <i data-lucide="zap" class="w-5 h-5"></i>
+                <span>Auto-Map All Fields</span>
+              </button>
+              <button id="showAllFieldsBtn" class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm font-medium flex items-center space-x-2">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+                <span>Show Unmapped Only</span>
+              </button>
+              <button id="expandAllFields" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">
+                Expand All
+              </button>
+              <button id="collapseAllFields" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium">
+                Collapse All
+              </button>
+            </div>
+          </div>
+
+          <!-- Field Mapping Accordion -->
+          <div id="fieldMappingAccordion" class="space-y-4">
+            <!-- 
+              Field mappings dynamically generated with:
+              - Two aligned panels (Source | Target)
+              - Check Mapping button in header
+              - Scrollable field lists with manual mapping dropdowns
+              - Color-coded status indicators
+              - Show All Fields reveals unmapped fields
+            -->
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="mt-8 flex justify-between">
+            <button 
+              id="step4Back"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-8 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <i data-lucide="arrow-left" class="w-5 h-5"></i>
+              <span>Back</span>
+            </button>
+            <button 
+              id="step4Next" 
+              class="bg-sf-blue hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <span>Next: Review & Transfer</span>
+              <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5: Review & Transfer (Hidden initially) -->
+      <div id="step5" class="step-content hidden fade-in">
+        <div class="bg-white rounded-lg shadow-md p-8">
+          <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Step 5: Review & Start Transfer</h2>
+            <p class="text-gray-600">Review your configuration and start the data transfer</p>
+          </div>
+
+          <!-- Summary Dashboard -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-6 shadow-lg">
+              <div class="flex items-center justify-between mb-2">
+                <i data-lucide="database" class="w-8 h-8"></i>
+                <span class="text-3xl font-bold" id="summaryObjectCount">0</span>
+              </div>
+              <div class="text-blue-100 text-sm font-medium">Objects Selected</div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg p-6 shadow-lg">
+              <div class="flex items-center justify-between mb-2">
+                <i data-lucide="list" class="w-8 h-8"></i>
+                <span class="text-3xl font-bold" id="summaryFieldCount">0</span>
+              </div>
+              <div class="text-green-100 text-sm font-medium">Fields Mapped</div>
+            </div>
+            
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg p-6 shadow-lg">
+              <div class="flex items-center justify-between mb-2">
+                <i data-lucide="file-text" class="w-8 h-8"></i>
+                <span class="text-3xl font-bold" id="summaryRecordCount">~</span>
+              </div>
+              <div class="text-purple-100 text-sm font-medium">Est. Records</div>
+            </div>
+          </div>
+
+          <!-- Transfer Configuration Summary -->
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Transfer Configuration</h3>
+            <div id="transferSummary" class="space-y-3">
+              <!-- Summary items will be added here -->
+            </div>
+          </div>
+
+          <!-- Transfer Button -->
+          <div class="flex justify-center mb-6">
+            <button 
+              id="startTransferBtn" 
+              class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-12 rounded-lg flex items-center space-x-3 text-lg shadow-lg transform hover:scale-105 transition-transform"
+            >
+              <i data-lucide="play-circle" class="w-6 h-6"></i>
+              <span>Start Data Transfer</span>
+            </button>
+          </div>
+
+          <!-- Transfer Progress (Hidden initially) -->
+          <div id="transferProgress" class="hidden bg-white border-2 border-blue-200 rounded-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="text-lg font-bold text-gray-900">Transfer in Progress</h4>
+              <span id="transferStatus" class="text-sm font-medium text-blue-600">Initializing...</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-4">
+              <div id="transferProgressBar" class="bg-blue-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div id="transferLogs" class="bg-gray-900 text-green-400 font-mono text-sm rounded-lg p-4 max-h-64 overflow-y-auto">
+              <div>[System] Initializing transfer...</div>
+            </div>
+          </div>
+
+          <!-- Navigation Buttons -->
+          <div class="mt-8 flex justify-between">
+            <button 
+              id="step5Back"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-8 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <i data-lucide="arrow-left" class="w-5 h-5"></i>
+              <span>Back</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <!-- Target Org -->
-  <div>
-    <input type="text" id="targetDomain" placeholder="Enter Target Org Domain" />
-    <button id="connectTarget">Connect Target Org</button>
-    <div id="targetStatus" class="status">Status: Not Connected</div>
+  <!-- Sidebar Status (Fixed) -->
+  <div id="statusSidebar" class="fixed bottom-4 right-4 bg-white rounded-lg shadow-2xl border-2 border-gray-200 transition-all duration-300">
+    <div class="p-4 w-80">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-bold text-gray-900">Status Summary</h3>
+        <button id="toggleSidebarBtn" onclick="toggleSidebar()" class="text-gray-400 hover:text-red-500 transition-colors" title="Hide summary">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="sidebarContent" class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Source Org:</span>
+          <span id="sidebarSourceOrg" class="font-medium text-gray-900">Not connected</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Target Org:</span>
+          <span id="sidebarTargetOrg" class="font-medium text-gray-900">Not connected</span>
+        </div>
+        <div class="h-px bg-gray-200 my-2"></div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Objects:</span>
+          <span id="sidebarObjects" class="font-medium text-gray-900">0 selected</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Fields:</span>
+          <span id="sidebarFields" class="font-medium text-gray-900">0 mapped</span>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Backend Server Status -->
-  <div id="backendServerStatus">Connecting to Backend...</div>
+  <!-- Show Sidebar Button (Hidden initially) -->
+  <button 
+    id="showSidebarBtn" 
+    onclick="toggleSidebar()" 
+    class="hidden fixed bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg shadow-2xl transition-all duration-300"
+    title="Show status summary"
+  >
+    <i data-lucide="bar-chart-2" class="w-6 h-6"></i>
+  </button>
 
+  <!-- Scripts -->
   <script src="public/JsHelper/config.js"></script>
   <script src="script.js"></script>
+  
+  <!-- Initialize Lucide Icons -->
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 </html>
+
